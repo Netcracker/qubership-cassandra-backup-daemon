@@ -1,0 +1,1 @@
+# qubership-cassandra-backup-daemon
