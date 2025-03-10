@@ -1,0 +1,8 @@
+Host *
+  ControlMaster auto
+  ControlPath /tmp/.ssh/ctl/control-%h-%p-%r
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+  User cassandra
+  Port 2222
+  IdentityFile /opt/backup/.ssh/id_rsa

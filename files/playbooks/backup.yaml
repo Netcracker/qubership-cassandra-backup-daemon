@@ -1,0 +1,20 @@
+- hosts: cassandra
+  gather_facts: false
+  tasks:
+  - name: backup
+    block:
+      - name: Run a backup with arguments
+        script: /opt/backup/src/backup_remote.py -u "{{ cassandra_user }}" -p="{{ cassandra_password }}" -s {{ ssl }} -t {{ timestamp }} -d '{{ databases }}' -ct {{ connect_timeout }} -rt {{ request_timeout }}
+      
+      - name: Copy backups to backup PV
+        synchronize:
+          src: /var/lib/cassandra/data/backup/*
+          dest: "{{ vault }}/{{ inventory_hostname }}/"
+          mode: pull
+          archive: no
+        register: copied
+    always:
+      - name: Clean backup path
+        file:
+          state: absent
+          path: /var/lib/cassandra/data/backup/
