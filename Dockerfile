@@ -12,7 +12,7 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/reposito
 RUN pip3 install cassandra-driver boto3==1.35.27 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
-ENV CASSANDRA4_DIR=apache-cassandra-4.1.4
+ENV CASSANDRA4_DIR=4.1.4
 
 RUN mkdir -p /opt/downloads
 RUN mkdir -p $CASSANDRA_HOME
