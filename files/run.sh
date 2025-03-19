@@ -9,9 +9,9 @@ if [ "$TLS_ENABLED" = "true" ]; then
 fi
 
 if [ "$CASSANDRA_MAJOR_VERSION" = "4" ]; then
-    cp -R /opt/downloads/"$CASSANDRA4_DIR"/* "$CASSANDRA_HOME"/
+    cp -R /opt/downloads/apache-cassandra-"$CASSANDRA4_DIR"/* "$CASSANDRA_HOME"/
 else
-    cp -R /opt/downloads/"$CASSANDRA3_DIR"/* "$CASSANDRA_HOME"/
+    cp -R /opt/downloads/apache-cassandra-"$CASSANDRA3_DIR"/* "$CASSANDRA_HOME"/
 fi
 
 if ! whoami &>/dev/null; then
