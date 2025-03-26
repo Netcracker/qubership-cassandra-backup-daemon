@@ -1,7 +1,7 @@
 FROM ghcr.io/netcracker/qubership-backup-daemon:vul_backup-daemon_alpine
 
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/repositories \
-    && echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/community' >> /etc/apk/repositories \
+RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.21/main/' > /etc/apk/repositories \
+    && echo 'https://dl-cdn.alpinelinux.org/alpine/v3.21/community' >> /etc/apk/repositories \
     && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq zip unzip bash grep libarchive-tools curl \
     && apk update \
     && apk upgrade \
