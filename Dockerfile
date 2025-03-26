@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon:main_alpine
+FROM ghcr.io/netcracker/qubership-backup-daemon:vulners_alpine
 
 RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/repositories \
     && echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/community' >> /etc/apk/repositories \
