@@ -51,10 +51,7 @@ jobs:
           username: ${GITHUB_ACTOR}
           password: ${{secrets.GITHUB_TOKEN}}
       - name: Prepare Tag
-        run: |
-          TAG_CLEANED=$(echo "${{ env.TAG_NAME }}" | sed 's@refs/tags/@@;s@refs/heads/@@;s@[^a-zA-Z0-9._-]@_@g')
-          echo "TAG_NAME=$TAG_CLEANED" >> $GITHUB_ENV
-          echo "Sanitized TAG_NAME: $TAG_CLEANED"
+        run: echo "TAG_NAME=$(echo ${TAG_NAME} | sed 's@refs/tags/@@;s@refs/heads/@@;s@/@_@g')" >> $GITHUB_ENV
       - name: Get package IDs for delete 
         id: get-ids-for-delete
         uses: Netcracker/get-package-ids@v0.0.1
