@@ -10,7 +10,7 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/reposito
 
 
 RUN pip install "setuptools==70.0.0" && \
-    pip install cassandra-driver boto3==1.35.27 jq
+    pip install cassandra-driver boto3==1.37.18 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
 ENV CASSANDRA4_DIR=4.1.4
