@@ -9,7 +9,8 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/reposito
     && sed -i "s/999/99/" /etc/group 
 
 
-RUN pip3 install cassandra-driver boto3==1.37.18 jq
+RUN pip install "setuptools==70.0.0" && \
+    pip install cassandra-driver boto3==1.37.18 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
 ENV CASSANDRA4_DIR=4.1.4
