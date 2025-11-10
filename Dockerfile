@@ -9,11 +9,11 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositor
     && sed -i "s/999/99/" /etc/group 
 
 
-RUN pip install "setuptools==70.0.0" && \
-    pip install cassandra-driver boto3==1.37.18 jq
+RUN pip install "setuptools==78.1.1" && \
+    pip install cassandra-driver boto3==1.40.69 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
-ENV CASSANDRA4_DIR=4.1.8
+ENV CASSANDRA4_DIR=4.1.9
 
 RUN mkdir -p /opt/downloads
 RUN mkdir -p $CASSANDRA_HOME
