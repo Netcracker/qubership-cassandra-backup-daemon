@@ -13,7 +13,7 @@ RUN pip install "setuptools==78.1.1" && \
     pip install cassandra-driver boto3==1.40.69 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
-ENV CASSANDRA4_DIR=4.1.9
+ENV CASSANDRA4_DIR=5.0.6
 
 RUN mkdir -p /opt/downloads
 RUN mkdir -p $CASSANDRA_HOME
