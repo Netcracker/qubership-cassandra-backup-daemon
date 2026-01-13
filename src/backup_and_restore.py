@@ -108,7 +108,7 @@ class Restore(object):
             # Do NOT manually replace UUIDs; let Cassandra assign new table IDs
             # Update schema to point to the new keyspace name only
             os_utils.replace_in_file(tables_schema_file, keyspace_name, new_keyspace_name)
-            strip_table_ids(tables_schema_file)
+            self.strip_table_ids(tables_schema_file)
             self.cassandra_client.run_cql_file(tables_schema_file)
 
             # Move snapshot to new keyspace path
@@ -209,7 +209,7 @@ class Restore(object):
                     self.log.debug(f"new_keyspace_name: {new_keyspace_name}")
                     os_utils.replace_in_file(keyspace_schema_file,
                                              keyspace_name, new_keyspace_name)
-                    strip_table_ids(keyspace_schema_file)
+                    self.strip_table_ids(keyspace_schema_file)
                     self.cassandra_client.run_cql_file(keyspace_schema_file)
 
                     new_keyspace_path = os.path.join(
