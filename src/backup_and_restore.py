@@ -104,7 +104,6 @@ class Restore(object):
         self.log.debug(f"table_path: {table_path}")
 
         # --- Handle clone / rename keyspace ---
-    self.cassandra_client.run_cql_file(tables_schema_file)
         if self.clone and new_keyspace_name:
             # Do NOT manually replace UUIDs; let Cassandra assign new table IDs
             # Update schema to point to the new keyspace name only
