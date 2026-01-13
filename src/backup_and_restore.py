@@ -124,7 +124,12 @@ class Restore(object):
                 shutil.move(source_path, destination_path)
 
         # Load SSTables into Cassandra
-        self.sstable_loader(table_path)
+        if not self.clone:
+            self.sstable_loader(table_path)
+        else:
+            self.log.info(
+                f"Skipping sstableloader for cloned keyspace {new_keyspace_name}"
+            )
 
     def sstable_loader(self, table_path):
         hostname = ",".join(f"{hostname}" for hostname in self.cassandra_hosts)
