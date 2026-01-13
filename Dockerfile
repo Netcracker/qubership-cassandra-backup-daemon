@@ -2,7 +2,7 @@ FROM ghcr.io/netcracker/qubership-backup-daemon:main_alpine
 
 RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositories \
     && echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories \
-    && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk11 jq zip unzip bash grep libarchive-tools curl \
+    && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq zip unzip bash grep libarchive-tools curl \
     && apk update \
     && apk upgrade \
     # ping takes over 999 uid 
@@ -13,7 +13,7 @@ RUN pip install "setuptools==78.1.1" && \
     pip install cassandra-driver boto3==1.40.69 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
-ENV CASSANDRA4_DIR=5.0.6
+ENV CASSANDRA4_DIR=4.1.9
 
 RUN mkdir -p /opt/downloads
 RUN mkdir -p $CASSANDRA_HOME
