@@ -94,36 +94,43 @@ class Restore(object):
             os.path.join(keyspace_snapshot_dir, "..", ".."))
 
         self.log.debug(f"table_path: {table_path}")
-        if self.clone:
-            generated_uuid = str(uuid.uuid4())
-            os_utils.replace_uuid(tables_schema_file, keyspace_name,
-                                  new_keyspace_name, generated_uuid)
+
+        # --- Handle clone / rename keyspace ---
+        if self.clone and new_keyspace_name:
+            # Do NOT manually replace UUIDs; let Cassandra assign new table IDs
+            # Update schema to point to the new keyspace name only
+            os_utils.replace_in_file(tables_schema_file, keyspace_name, new_keyspace_name)
             self.cassandra_client.run_cql_file(tables_schema_file)
-            table_path = os_utils.get_new_table_path(
-                table_path, generated_uuid)
-            self.log.debug(f"get_new_table_path: {table_path}")
-            shutil.move(os.path.join(
-                keyspace_snapshot_dir), table_path)
+
+            # Move snapshot to new keyspace path
+            new_keyspace_path = os.path.join(
+                os.path.dirname(os.path.dirname(keyspace_snapshot_dir)), new_keyspace_name)
+            shutil.move(keyspace_snapshot_dir, new_keyspace_path)
+            table_path = new_keyspace_path
+            self.log.debug(f"new_keyspace_path: {table_path}")
 
         else:
-            # drop and create table
+            # Drop and create table if needed
             table_name = os.path.basename(table_path).split("-")[0]
             self.log.debug(f"Tables for restore: {tables_for_restore}")
             if not tables_for_restore or table_name in tables_for_restore:
                 self.cassandra_client.drop_table(keyspace_name, table_name)
             self.cassandra_client.run_cql_file(tables_schema_file)
 
-            # copy files to final location
+            # Copy files to final location
             for item in os.listdir(keyspace_snapshot_dir):
                 source_path = os.path.join(keyspace_snapshot_dir, item)
                 destination_path = os.path.join(table_path, item)
                 shutil.move(source_path, destination_path)
 
+        # Load SSTables into Cassandra
         self.sstable_loader(table_path)
 
     def sstable_loader(self, table_path):
         hostname = ",".join(f"{hostname}" for hostname in self.cassandra_hosts)
         self.log.debug(f"Loading table {table_path} to {hostname}")
+
+        # Only point to the directory containing SSTables
         command = [
             f"{self.cassandra_bin_dir}/sstableloader",
             "-u", self.username,
@@ -131,9 +138,11 @@ class Restore(object):
             "-d", hostname,
             table_path
         ]
+
         if self.tls_enabled:
             command.extend(self.loader_ssl_args)
 
+        # Execute the loader command
         os_utils.execute_command(command)
 
     def restore(self):
