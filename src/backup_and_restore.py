@@ -8,10 +8,8 @@ import logging
 import glob
 from src import cassandra_client, os_utils
 
-
 CASSANDRA_HOME_BIN = "/opt/cassandra/bin"
-CASSANDRA_DATA_DIR = os.getenv(
-    "CASSANDRA_DATA_DIR", "var/lib/cassandra/data")
+CASSANDRA_DATA_DIR = os.getenv("CASSANDRA_DATA_DIR", "var/lib/cassandra/data")
 CASSANDRA_USERNAME = os.getenv('CASSANDRA_USERNAME')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD')
 CASSANDRA_HOSTS = os.getenv('CASSANDRA_HOSTS')
@@ -23,29 +21,28 @@ class Restore(object):
         self.clone = dbmap is not None
         self.vault = vault
         self.dbmap = dbmap
-        self.need_restore_roles = os_utils.str_to_bool(
-            restore_roles) if restore_roles is not None else False
+        self.need_restore_roles = os_utils.str_to_bool(restore_roles) if restore_roles is not None else False
         self.username = os.getenv('CASSANDRA_USERNAME')
         self.password = os.getenv('CASSANDRA_PASSWORD')
         self.connect_timeout = os.getenv('CONNECT_TIMEOUT', 20)
         self.request_timeout = os.getenv('REQUEST_TIMEOUT', 20)
-        self.tls_enabled = os_utils.str_to_bool(
-            os.getenv("TLS_ENABLED", False))
+        self.tls_enabled = os_utils.str_to_bool(os.getenv("TLS_ENABLED", False))
         self.cassandra_bin_dir = "/opt/cassandra/bin"
-        self.cassandra_data_dir = os.getenv(
-            "CASSANDRA_DATA_DIR", "var/lib/cassandra/data")
-        self.cassandra_hosts = os_utils.reformat_hostnames(
-            os.getenv('CASSANDRA_HOSTS'))
+        self.cassandra_data_dir = os.getenv("CASSANDRA_DATA_DIR", "var/lib/cassandra/data")
+        self.cassandra_hosts = os_utils.reformat_hostnames(os.getenv('CASSANDRA_HOSTS'))
         self.cassandra_client = cassandra_client.CassandraClient(
             self.cassandra_hosts, username=self.username, password=self.password, tls_enabled=self.tls_enabled,
-            connect_timeout=int(self.connect_timeout), request_timeout=int(self.request_timeout))
+            connect_timeout=int(self.connect_timeout), request_timeout=int(self.request_timeout)
+        )
 
         if self.tls_enabled:
             os.environ['SSL_CERTFILE'] = os.getenv("TLS_ROOTCERT")
             self.loader_ssl_args = ['-ts', '/opt/cassandra/truststore.jks',
                                     '-ks', '/opt/cassandra/truststore.jks', '-tspw', 'cassandra', '-kspw', 'cassandra']
+
         self.log = logging.getLogger(__name__)
 
+    # ---------------- Existing methods ----------------
     def get_tables_for_restore(self, databases, keyspace):
         number_of_dbs = len(databases)
         tables = []
@@ -75,95 +72,98 @@ class Restore(object):
 
         for role in cql_files:
             if self.clone:
-                new_keyspace_name = json.loads(
-                    self.dbmap).get(keyspace_name, "")
-                os_utils.replace_in_file(
-                    role, keyspace_name, new_keyspace_name)
+                new_keyspace_name = json.loads(self.dbmap).get(keyspace_name, "")
+                os_utils.replace_in_file(role, keyspace_name, new_keyspace_name)
             self.cassandra_client.run_cql_file(role)
 
-    # =========================
-    # FIX: regenerate_names schema sanitizer
-    # =========================
+    # ---------------- Fixes for Cassandra 5.0.6 ----------------
     def strip_table_ids(self, cql_file):
         import re
 
         with open(cql_file, "r") as f:
             content = f.read()
 
-        # Remove WITH ID = <uuid>
-        content = re.sub(
-            r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+",
-            "",
-            content,
-            flags=re.IGNORECASE
-        )
+        # Remove "WITH ID = <uuid>" only
+        content = re.sub(r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+", "", content, flags=re.IGNORECASE)
 
-        # Remove unsupported option
-        content = re.sub(
-            r"\n\s*AND\s+additional_write_policy\s*=\s*'.*?'",
-            "",
-            content,
-            flags=re.IGNORECASE
-        )
-
-        # Convert first AND → WITH
-        content = re.sub(
-            r"\)\s*\n\s*AND\s+",
-            ")\nWITH ",
-            content,
-            count=1,
-            flags=re.IGNORECASE
-        )
+        # Remove leftover "AND" immediately after removed ID
+        content = re.sub(r"\)\s*AND\s+", ") ", content, flags=re.IGNORECASE)
 
         with open(cql_file, "w") as f:
             f.write(content)
 
+    def sanitize_schema_for_cassandra5(self, cql_file):
+        """
+        Remove unsupported options for Cassandra 5.x like additional_write_policy and invalid speculative_retry
+        """
+        import re
+
+        with open(cql_file, "r") as f:
+            content = f.read()
+
+        unsupported_options = [
+            r"AND\s+additional_write_policy\s*=\s*'[^']*'",
+            r"AND\s+speculative_retry\s*=\s*'[^']*'"
+        ]
+        for pattern in unsupported_options:
+            content = re.sub(pattern, "", content, flags=re.IGNORECASE)
+
+        # Remove leftover ANDs at line ends
+        content = re.sub(r"\)\s*AND\s+", ") ", content, flags=re.IGNORECASE)
+
+        with open(cql_file, "w") as f:
+            f.write(content)
+
+    # ---------------- Restore Keyspace ----------------
     def restore_keyspace(self, keyspace_snapshot_dir, keyspace_name, tables_for_restore, new_keyspace_name=None):
         self.log.debug(f"Restoring : {keyspace_snapshot_dir}")
-        tables_schema_file: str = os_utils.find_file_in_directory(
-            keyspace_snapshot_dir, "schema.cql")
+        tables_schema_file: str = os_utils.find_file_in_directory(keyspace_snapshot_dir, "schema.cql")
 
-        if not tables_schema_file:
+        if tables_schema_file is None or tables_schema_file == '':
             self.log.info("no tables to restore, skipping")
             return
 
-        table_path = os.path.realpath(
-            os.path.join(keyspace_snapshot_dir, "..", ".."))
+        table_path = os.path.realpath(os.path.join(keyspace_snapshot_dir, "..", ".."))
+        self.log.debug(f"table_path: {table_path}")
 
         # --- Handle clone / rename keyspace ---
         if self.clone and new_keyspace_name:
-            os_utils.replace_in_file(
-                tables_schema_file, keyspace_name, new_keyspace_name)
-
-            # ONLY sanitize for regenerate_names
-            if keyspace_name.startswith("regenerate_names"):
-                if self.clone and new_keyspace_name:
-                    self.strip_table_ids(tables_schema_file)
-
+            os_utils.replace_in_file(tables_schema_file, keyspace_name, new_keyspace_name)
+            self.strip_table_ids(tables_schema_file)
+            self.sanitize_schema_for_cassandra5(tables_schema_file)
             self.cassandra_client.run_cql_file(tables_schema_file)
 
-            new_keyspace_path = os.path.join(
-                os.path.dirname(os.path.dirname(keyspace_snapshot_dir)), new_keyspace_name)
+            new_keyspace_path = os.path.join(os.path.dirname(os.path.dirname(keyspace_snapshot_dir)), new_keyspace_name)
             shutil.move(keyspace_snapshot_dir, new_keyspace_path)
             table_path = new_keyspace_path
+            self.log.debug(f"new_keyspace_path: {table_path}")
 
         else:
             table_name = os.path.basename(table_path).split("-")[0]
+            self.log.debug(f"Tables for restore: {tables_for_restore}")
             if not tables_for_restore or table_name in tables_for_restore:
                 self.cassandra_client.drop_table(keyspace_name, table_name)
+            self.strip_table_ids(tables_schema_file)
+            self.sanitize_schema_for_cassandra5(tables_schema_file)
             self.cassandra_client.run_cql_file(tables_schema_file)
 
+            # Copy files to final location
             for item in os.listdir(keyspace_snapshot_dir):
-                shutil.move(
-                    os.path.join(keyspace_snapshot_dir, item),
-                    os.path.join(table_path, item)
-                )
+                source_path = os.path.join(keyspace_snapshot_dir, item)
+                destination_path = os.path.join(table_path, item)
+                shutil.move(source_path, destination_path)
 
+        # Load SSTables into Cassandra
         if not self.clone:
             self.sstable_loader(table_path)
+        else:
+            self.log.info(f"Skipping sstableloader for cloned keyspace {new_keyspace_name}")
 
+    # ---------------- Existing methods continue ----------------
     def sstable_loader(self, table_path):
-        hostname = ",".join(self.cassandra_hosts)
+        hostname = ",".join(f"{hostname}" for hostname in self.cassandra_hosts)
+        self.log.debug(f"Loading table {table_path} to {hostname}")
+
         command = [
             f"{self.cassandra_bin_dir}/sstableloader",
             "-u", self.username,
