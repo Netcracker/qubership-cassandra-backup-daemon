@@ -87,9 +87,18 @@ class Restore(object):
         with open(cql_file, "r") as f:
             content = f.read()
 
+        # Remove "WITH ID = <uuid>"
         content = re.sub(
-            r"\s+WITH\s+ID\s*=\s*[a-f0-9\-]+",
-            "",
+            r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+\s*",
+            "WITH ",
+            content,
+            flags=re.IGNORECASE
+        )
+
+        # If "WITH ID" was the only WITH clause, fix leading AND → WITH
+        content = re.sub(
+            r"\)\s*AND\s+",
+            ")\nWITH ",
             content,
             flags=re.IGNORECASE
         )
