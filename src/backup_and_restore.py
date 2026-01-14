@@ -6,7 +6,6 @@ import shutil
 import uuid
 import logging
 import glob
-import subprocess
 from src import cassandra_client, os_utils
 
 
@@ -38,64 +37,90 @@ class Restore(object):
         self.cassandra_hosts = os_utils.reformat_hostnames(
             os.getenv('CASSANDRA_HOSTS'))
         self.cassandra_client = cassandra_client.CassandraClient(
-            self.cassandra_hosts, username=self.username, password=self.password,
-            tls_enabled=self.tls_enabled,
-            connect_timeout=int(self.connect_timeout),
-            request_timeout=int(self.request_timeout))
+            self.cassandra_hosts, username=self.username, password=self.password, tls_enabled=self.tls_enabled,
+            connect_timeout=int(self.connect_timeout), request_timeout=int(self.request_timeout))
 
+        if self.tls_enabled:
+            os.environ['SSL_CERTFILE'] = os.getenv("TLS_ROOTCERT")
+            self.loader_ssl_args = ['-ts', '/opt/cassandra/truststore.jks',
+                                    '-ks', '/opt/cassandra/truststore.jks', '-tspw', 'cassandra', '-kspw', 'cassandra']
         self.log = logging.getLogger(__name__)
 
-    # ------------------------------------------------------------------
-    # Schema sanitization ONLY for regenerate_names
-    # ------------------------------------------------------------------
-    def sanitize_regenerate_names_schema(self, cql_file: str):
+    def get_tables_for_restore(self, databases, keyspace):
+        number_of_dbs = len(databases)
+        tables = []
+        for i in range(number_of_dbs):
+            if isinstance(databases[i], str) and databases[i] == keyspace:
+                tables = ""
+            elif isinstance(databases[i], dict) and list(databases[i].keys())[0] == keyspace:
+                tables = databases[i][keyspace]["tables"]
+
+        number_of_tbs = len(tables)
+        tbs = ""
+
+        if number_of_tbs > 0:
+            for j in range(number_of_tbs):
+                tbs += f" {tables[j]}"
+
+        return tbs.strip()
+
+    def restore_roles(self, keyspace_path, keyspace_name):
+        self.log.info("Start restoring roles")
+        cql_files = [
+            os.path.join(dp, f)
+            for dp, dn, filenames in os.walk(keyspace_path)
+            for f in filenames
+            if f.startswith("bkp_role_") and f.endswith(".cql")
+        ]
+
+        for role in cql_files:
+            if self.clone:
+                new_keyspace_name = json.loads(
+                    self.dbmap).get(keyspace_name, "")
+                os_utils.replace_in_file(
+                    role, keyspace_name, new_keyspace_name)
+            self.cassandra_client.run_cql_file(role)
+
+    # =========================
+    # FIX: regenerate_names schema sanitizer
+    # =========================
+    def strip_table_ids(self, cql_file):
         import re
 
         with open(cql_file, "r") as f:
             content = f.read()
 
-        # Remove WITH ID
+        # Remove WITH ID = <uuid>
         content = re.sub(
-            r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+\s*",
-            "WITH ",
-            content,
-            flags=re.IGNORECASE
-        )
-
-        # Remove unsupported options
-        content = re.sub(
-            r"\s*AND\s+additional_write_policy\s*=\s*'[^']+'",
+            r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+",
             "",
             content,
             flags=re.IGNORECASE
         )
 
-        # Fix WITH + AND formatting
-        content = re.sub(r"WITH\s*\n\s*AND", "WITH", content, flags=re.IGNORECASE)
+        # Remove unsupported option
+        content = re.sub(
+            r"\n\s*AND\s+additional_write_policy\s*=\s*'.*?'",
+            "",
+            content,
+            flags=re.IGNORECASE
+        )
+
+        # Convert first AND → WITH
+        content = re.sub(
+            r"\)\s*\n\s*AND\s+",
+            ")\nWITH ",
+            content,
+            count=1,
+            flags=re.IGNORECASE
+        )
 
         with open(cql_file, "w") as f:
-            f.write(content.strip() + "\n")
+            f.write(content)
 
-    # ------------------------------------------------------------------
-    # nodetool import (Cassandra 5.x safe)
-    # ------------------------------------------------------------------
-    def nodetool_import(self, keyspace: str, table: str, table_path: str):
-        cmd = [
-            f"{self.cassandra_bin_dir}/nodetool",
-            "import",
-            keyspace,
-            table,
-            table_path
-        ]
-
-        self.log.info(f"Running nodetool import: {' '.join(cmd)}")
-        subprocess.check_call(cmd)
-
-    # ------------------------------------------------------------------
-    def restore_keyspace(self, keyspace_snapshot_dir, keyspace_name,
-                         tables_for_restore, new_keyspace_name=None):
-
-        tables_schema_file = os_utils.find_file_in_directory(
+    def restore_keyspace(self, keyspace_snapshot_dir, keyspace_name, tables_for_restore, new_keyspace_name=None):
+        self.log.debug(f"Restoring : {keyspace_snapshot_dir}")
+        tables_schema_file: str = os_utils.find_file_in_directory(
             keyspace_snapshot_dir, "schema.cql")
 
         if not tables_schema_file:
@@ -105,140 +130,110 @@ class Restore(object):
         table_path = os.path.realpath(
             os.path.join(keyspace_snapshot_dir, "..", ".."))
 
-        table_name = os.path.basename(table_path).split("-")[0]
-
-        # --------------------------------------------------------------
-        # Clone + regenerate_names handling
-        # --------------------------------------------------------------
+        # --- Handle clone / rename keyspace ---
         if self.clone and new_keyspace_name:
             os_utils.replace_in_file(
                 tables_schema_file, keyspace_name, new_keyspace_name)
 
-            if keyspace_name.startswith("regenerate_names_"):
-                self.sanitize_regenerate_names_schema(tables_schema_file)
+            # ONLY sanitize for regenerate_names
+            if keyspace_name.startswith("regenerate_names"):
+                self.strip_table_ids(tables_schema_file)
 
             self.cassandra_client.run_cql_file(tables_schema_file)
 
             new_keyspace_path = os.path.join(
-                os.path.dirname(os.path.dirname(keyspace_snapshot_dir)),
-                new_keyspace_name)
-
+                os.path.dirname(os.path.dirname(keyspace_snapshot_dir)), new_keyspace_name)
             shutil.move(keyspace_snapshot_dir, new_keyspace_path)
             table_path = new_keyspace_path
 
         else:
+            table_name = os.path.basename(table_path).split("-")[0]
             if not tables_for_restore or table_name in tables_for_restore:
                 self.cassandra_client.drop_table(keyspace_name, table_name)
             self.cassandra_client.run_cql_file(tables_schema_file)
 
-        # --------------------------------------------------------------
-        # DATA LOAD LOGIC (KEY FIX)
-        # --------------------------------------------------------------
+            for item in os.listdir(keyspace_snapshot_dir):
+                shutil.move(
+                    os.path.join(keyspace_snapshot_dir, item),
+                    os.path.join(table_path, item)
+                )
+
         if not self.clone:
-            # Normal restore path (unchanged)
             self.sstable_loader(table_path)
 
-        elif keyspace_name.startswith("regenerate_names_"):
-            # REQUIRED for Cassandra 5.x
-            self.nodetool_import(
-                new_keyspace_name,
-                table_name,
-                table_path
-            )
-
-        else:
-            self.log.info(
-                f"Skipping data load for cloned keyspace {new_keyspace_name}"
-            )
-
-    # ------------------------------------------------------------------
     def sstable_loader(self, table_path):
         hostname = ",".join(self.cassandra_hosts)
-        cmd = [
+        command = [
             f"{self.cassandra_bin_dir}/sstableloader",
             "-u", self.username,
             "-pw", self.password,
             "-d", hostname,
             table_path
         ]
-        os_utils.execute_command(cmd)
-        
+
+        if self.tls_enabled:
+            command.extend(self.loader_ssl_args)
+
+        os_utils.execute_command(command)
+
     def restore(self):
         host_archives = os_utils.find_host_archives(self.vault)
 
         for keyspace_name in self.dbs:
             backups = [x for x in host_archives if keyspace_name == x["keyspace"]]
             keyspace_dropped = False
+
             for backup in backups:
                 path = backup["path"]
-                backup_name = backup["archive"][:-7]  # remove .tar.gz
+                backup_name = backup["archive"][:-7]
                 tempDir = os_utils.extract_to_tmp_dir(path, backup["archive"])
-                if tempDir == "":
+                if not tempDir:
                     continue
 
-                keyspace_path = os.path.join(tempDir, self.cassandra_data_dir, keyspace_name)
+                keyspace_path = os.path.join(
+                    tempDir, self.cassandra_data_dir, keyspace_name)
+
                 metaobject = get_metadata_object(path, keyspace_name)
-                tables_for_restore = self.get_tables_for_restore(self.dbs, keyspace_name)
+
+                tables_for_restore = self.get_tables_for_restore(
+                    self.dbs, keyspace_name)
                 if tables_for_restore:
                     check_tables_for_restore(metaobject, tables_for_restore)
 
-                keyspace_schema_file: str = os_utils.find_file_in_directory(
+                keyspace_schema_file = os_utils.find_file_in_directory(
                     keyspace_path, "tsschema.cql")
 
                 new_keyspace_name = None
 
-                if not self.clone:
-                    if not keyspace_dropped:
-                        if metaobject.get("all_tables", False) and not tables_for_restore:
-                            if self.need_restore_roles:
-                                self.log.info(f"Dropping keyspace: {keyspace_name}")
-                                self.cassandra_client.drop_keyspace(keyspace_name)
-                            keyspace_dropped = True
-                        self.log.info(f"Creating keyspace: {keyspace_name}")
-                        self.cassandra_client.run_cql_file(keyspace_schema_file)
+                if self.clone:
+                    new_keyspace_name = json.loads(self.dbmap).get(keyspace_name)
+                    os_utils.replace_in_file(
+                        keyspace_schema_file, keyspace_name, new_keyspace_name)
 
-                elif self.clone:
-                    new_keyspace_name = json.loads(self.dbmap).get(keyspace_name, "")
-                    self.log.debug(f"new_keyspace_name: {new_keyspace_name}")
+                    if keyspace_name.startswith("regenerate_names"):
+                        self.strip_table_ids(keyspace_schema_file)
 
-                    if keyspace_name.startswith("regenerate_names_"):
-                        self.sanitize_regenerate_names_schema(keyspace_schema_file)
-
-                    os_utils.replace_in_file(keyspace_schema_file, keyspace_name, new_keyspace_name)
-                    self.strip_table_ids(keyspace_schema_file)
                     self.cassandra_client.run_cql_file(keyspace_schema_file)
 
-                    new_keyspace_path = os.path.join(tempDir, self.cassandra_data_dir, new_keyspace_name)
+                    new_keyspace_path = os.path.join(
+                        tempDir, self.cassandra_data_dir, new_keyspace_name)
                     shutil.move(keyspace_path, new_keyspace_path)
                     keyspace_path = new_keyspace_path
-                    self.log.debug(f"new_keyspace_path: {keyspace_path}")
 
-                    if not keyspace_dropped and not self.need_restore_roles:
-                        self.log.info(f"Dropping all tables: {new_keyspace_name}")
-                        self.cassandra_client.drop_all_tables(new_keyspace_name)
-                        keyspace_dropped = True
-
-                if self.need_restore_roles:
-                    self.restore_roles(keyspace_path=keyspace_path, keyspace_name=keyspace_name)
-
-                self.log.info("Start restoring tables.")
-                keyspace_snapshots = glob.glob(f"{keyspace_path}/**/{backup_name}", recursive=True)
+                keyspace_snapshots = glob.glob(
+                    f"{keyspace_path}/**/{backup_name}", recursive=True)
 
                 try:
                     for keyspace_snapshot in keyspace_snapshots:
-                        self.restore_keyspace(keyspace_snapshot, keyspace_name, tables_for_restore, new_keyspace_name)
-                except Exception as e:
-                    raise e
+                        self.restore_keyspace(
+                            keyspace_snapshot, keyspace_name, tables_for_restore, new_keyspace_name)
                 finally:
-                    self.log.info(f"Removing temp folder {tempDir}")
                     shutil.rmtree(tempDir)
+
         self.log.info("Restore finished")
 
 
-# Helper functions outside the class
 def cluster_backup(databases, vault, tls_enabled, cassandra_username, cassandra_password):
-    logging.info("Starting backup")
-    logging.info("Databse List: {databases}, vault: {vault}")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ansible_command = [
         "ansible-playbook",
@@ -253,17 +248,14 @@ def cluster_backup(databases, vault, tls_enabled, cassandra_username, cassandra_
             f'cassandra_password={cassandra_password} '
             f'ssl={tls_enabled} '
             f'databases={"" if databases is None else databases} '
-            f'timestamp={timestamp} '
-            f'connect_timeout={os.getenv("CONNECT_TIMEOUT", 20)} '
-            f'request_timeout={os.getenv("REQUEST_TIMEOUT", 20)}'
+            f'timestamp={timestamp}'
         )
     ]
     os_utils.execute_command(ansible_command)
 
 
 def get_metadata_object(directory, keyspace_name):
-    json_file = os.path.join(directory, 'metadata.json')
-    with open(json_file) as f:
+    with open(os.path.join(directory, 'metadata.json')) as f:
         metadata = json.load(f)
     for obj in metadata:
         if obj.get('keyspace') == keyspace_name:
@@ -271,11 +263,12 @@ def get_metadata_object(directory, keyspace_name):
     return None
 
 
-def check_tables_for_restore(metaobject, tables_for_restore):
+def check_tables_for_restore(metaobject, tables_for_restore, backup_name):
     tib = metaobject.get("tables", [])
-    not_found = [table for table in tables_for_restore if table not in tib]
+    not_found = [t for t in tables_for_restore if t not in tib]
     if not_found:
-        raise LookupError(f"Tables {not_found} don't exist in backup {metaobject.get('archive', '')}")
+        raise LookupError(
+            f"Tables {not_found} don't exist in backup {backup_name}")
 
 
 def list_databases(vault):
@@ -284,6 +277,5 @@ def list_databases(vault):
     for root, dirs, files in os.walk(vault):
         for file in files:
             if file.endswith('.tar.gz'):
-                database_name = file.split('-')[0]
-                database_names.append(database_name)
+                database_names.append(file.split('-')[0])
     return database_names
