@@ -131,24 +131,31 @@ class Restore(object):
             self.cassandra_client.run_cql_file(role)
 
     def strip_table_ids(self, cql_file):
+        import re
+
         with open(cql_file, "r") as f:
             content = f.read()
 
-        # Remove WITH ID = <uuid>
+        # Remove "WITH ID = <uuid>"
         content = re.sub(
             r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+\s*",
-            "WITH ",
+            "",
             content,
             flags=re.IGNORECASE
         )
 
-        # Fix invalid ") AND" after ID removal
+        # Remove any leftover dangling "AND" after WITH removal
         content = re.sub(
-            r"\)\s*AND\s+",
-            ")\nWITH ",
+            r"\s+AND\s+",
+            "\n",
             content,
             flags=re.IGNORECASE
         )
+
+        # Clean up double spaces and trailing spaces
+        content = re.sub(r"\s+\n", "\n", content)
+        content = re.sub(r"\n\s+", "\n", content)
+        content = content.strip()
 
         with open(cql_file, "w") as f:
             f.write(content)
