@@ -136,29 +136,22 @@ class Restore(object):
         with open(cql_file, "r") as f:
             content = f.read()
 
-        # 1. Remove "WITH ID = <uuid>" anywhere
+        # Remove "WITH ID = <uuid>" only
         content = re.sub(
-            r"WITH\s+ID\s*=\s*[a-f0-9\-]+",
+            r"\bWITH\s+ID\s*=\s*[a-f0-9\-]+",
             "",
             content,
             flags=re.IGNORECASE
         )
 
-        # 2. Remove dangling ANDs that appear after removing IDs
-        # This handles cases like: ) AND compression = {...};
+        # Remove any leftover "AND" immediately after removed ID
         content = re.sub(
-            r"\)\s*AND",
-            ")",
+            r"\)\s*AND\s+",
+            ") ",
             content,
             flags=re.IGNORECASE
         )
 
-        # 3. Clean up extra whitespaces and multiple newlines
-        content = re.sub(r"[ \t]+", " ", content)
-        content = re.sub(r"\n\s*\n", "\n", content)
-        content = content.strip()
-
-        # 4. Write cleaned content back
         with open(cql_file, "w") as f:
             f.write(content)
 
