@@ -82,12 +82,20 @@ class Restore(object):
             self.cassandra_client.run_cql_file(role)
             
     def strip_table_ids(self, cql_file):
-        # removes: WITH ID = xxxxx;
-        os_utils.replace_regex_in_file(
-            cql_file,
+        import re
+
+        with open(cql_file, "r") as f:
+            content = f.read()
+
+        content = re.sub(
             r"\s+WITH\s+ID\s*=\s*[a-f0-9\-]+",
-            ""
+            "",
+            content,
+            flags=re.IGNORECASE
         )
+
+        with open(cql_file, "w") as f:
+            f.write(content)
         
     def restore_keyspace(self, keyspace_snapshot_dir, keyspace_name, tables_for_restore, new_keyspace_name=None):
         self.log.debug(f"Restoring : {keyspace_snapshot_dir}")
