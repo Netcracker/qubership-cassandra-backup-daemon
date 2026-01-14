@@ -137,7 +137,8 @@ class Restore(object):
 
             # ONLY sanitize for regenerate_names
             if keyspace_name.startswith("regenerate_names"):
-                self.strip_table_ids(tables_schema_file)
+                if self.clone and new_keyspace_name:
+                    self.strip_table_ids(tables_schema_file)
 
             self.cassandra_client.run_cql_file(tables_schema_file)
 
@@ -211,7 +212,8 @@ class Restore(object):
                         keyspace_schema_file, keyspace_name, new_keyspace_name)
 
                     if keyspace_name.startswith("regenerate_names"):
-                        self.strip_table_ids(keyspace_schema_file)
+                        if self.clone and new_keyspace_name:
+                            self.strip_table_ids(keyspace_schema_file)
 
                     self.cassandra_client.run_cql_file(keyspace_schema_file)
 
