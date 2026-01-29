@@ -25,4 +25,4 @@ if [ "$REMOTE_DEBUG" = "true" ]; then
     debug_params="-m debugpy --listen localhost:5678"
 fi
 
-python3 $debug_params /opt/backup/backup-daemon.py
+exec /app/backup-daemon
