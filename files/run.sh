@@ -26,6 +26,7 @@ if [ "$REMOTE_DEBUG" = "true" ]; then
 fi
 
 exec /opt/backup/backup-daemon \
+  --allow-prefix=true \
   --backup-cmd "/opt/backup/main.py backup -f '{{.data_folder}} {{.dbs}}'" \
   --restore-cmd "/opt/backup/main.py restore -f '{{.data_folder}} {{.dbs}} {{.dbmap}} {{.restore_roles}}'" \
   --dblist-cmd "/opt/backup/main.py list-dbs -f '{{.data_folder}}'" \
