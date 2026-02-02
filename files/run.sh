@@ -25,6 +25,8 @@ if [ "$REMOTE_DEBUG" = "true" ]; then
     debug_params="-m debugpy --listen localhost:5678"
 fi
 
+export ALLOW_PREFIX=true
+
 exec /opt/backup/backup-daemon \
   --backup-cmd "/opt/backup/main.py backup -f '{{.data_folder}} {{.dbs}}'" \
   --restore-cmd "/opt/backup/main.py restore -f '{{.data_folder}} {{.dbs}} {{.dbmap}} {{.restore_roles}}'" \
