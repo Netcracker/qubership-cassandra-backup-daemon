@@ -222,7 +222,7 @@ class Restore(object):
 
 def cluster_backup(databases, vault, tls_enabled, cassandra_username, cassandra_password):
     logging.info("Starting backup")
-    logging.info("Databse List: {databases}, vault: {vault}")
+    logging.info(f"Databse List: {databases}, vault: {vault}")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ansible_command = [
         "ansible-playbook",
