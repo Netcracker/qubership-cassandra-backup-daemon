@@ -57,7 +57,7 @@ def main():
             exit(1)
     elif args.action == 'restore':
         restore = src.backup_and_restore.Restore(
-            args.vault, args.dbmap, json.loads(args.databases), args.restore_roles)
+            args.vault, args.dbmap, args.databases, args.restore_roles)
         try:
             restore.restore()
         except Exception as e:
