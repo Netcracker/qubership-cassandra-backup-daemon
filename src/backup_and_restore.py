@@ -141,6 +141,8 @@ class Restore(object):
 
         for keyspace_name in self.dbs:
             # find keyspace backups on all hosts
+            self.dbs = self.dbs.replace('\\"', '"')
+            self.dbs = json.loads(self.dbs)
             backups = [
                 x for x in host_archives if keyspace_name == x["keyspace"]]
             keyspace_dropped = False
