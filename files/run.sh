@@ -26,6 +26,11 @@ if [ "$REMOTE_DEBUG" = "true" ]; then
 fi
 
 exec /opt/backup/backup-daemon \
+  --custom-vars '[{"backup_info":"nothing"}, "restore_roles"]' \
+  --logs-to-stdout true \
+  --publish-custom-vars true \
+  --tls-enabled {{.tls_enabled}} \
+  --certs-path {{.certs_path}} \
   --backup-cmd "/opt/backup/main.py backup -f {{.data_folder}} {{.dbs}}" \
   --restore-cmd "/opt/backup/main.py restore -f {{.data_folder}} {{.dbs}} {{.dbmap}} {{.restore_roles}}" \
   --dblist-cmd "/opt/backup/main.py list-dbs -f {{.data_folder}}" \
