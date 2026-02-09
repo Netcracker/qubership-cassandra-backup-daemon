@@ -9,7 +9,8 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositor
     && sed -i "s/999/99/" /etc/group \
     && python3 -m venv /venv \
     && /venv/bin/pip install --upgrade pip setuptools wheel \
-    && /venv/bin/pip install cassandra-driver==3.29.1 boto3==1.40.69 jq
+    && /venv/bin/pip install --no-build-isolation cassandra-driver==3.29.1 \
+    && /venv/bin/pip install boto3==1.40.69 jq
 
 ENV PATH="/venv/bin:$PATH"
 
