@@ -1,8 +1,8 @@
 FROM ghcr.io/netcracker/qubership-backup-daemon-go:backup_fix
 
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositories \
-    && echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories \
-    && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq python3 python3-dev py3-pip libev-dev build-base linux-headers libffi-dev zip unzip bash grep libarchive-tools py3-cassandra-driver \
+RUN echo 'https://dl-cdn.alpinelinux.org/alpine/3.23.3/main/' > /etc/apk/repositories \
+    && echo 'https://dl-cdn.alpinelinux.org/alpine/3.23.3/community' >> /etc/apk/repositories \
+    && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq python3 python3-dev py3-pip libev-dev build-base linux-headers libffi-dev zip unzip bash grep libarchive-tools \
     && apk update \
     && apk upgrade \
     # ping takes over 999 uid 
