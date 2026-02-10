@@ -1,7 +1,7 @@
 FROM ghcr.io/netcracker/qubership-backup-daemon-go:backup_fix
 
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/repositories \
-    && echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/community/' >> /etc/apk/repositories \
+RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositories \
+    && echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories \
     && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq python3 python3-dev py3-pip libev-dev build-base linux-headers libffi-dev zip unzip bash grep libarchive-tools \
     && apk update \
     && apk upgrade \
@@ -9,7 +9,8 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.20/main/' > /etc/apk/reposito
     && sed -i "s/999/99/" /etc/group 
 
 
-RUN pip install  --break-system-packages cassandra-driver boto3==1.40.69 jq
+RUN pip install  --break-system-packages "setuptools==82.0.0" && \
+    pip install  --break-system-packages cassandra-driver boto3==1.40.69 jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
 ENV CASSANDRA4_DIR=4.1.9
