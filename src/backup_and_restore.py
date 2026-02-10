@@ -138,12 +138,10 @@ class Restore(object):
 
     def restore(self):
         host_archives = os_utils.find_host_archives(self.vault)
-        print("Before parsing:", self.dbs, type(self.dbs))
+        self.dbs = self.dbs.replace('\\"', '"')
+        self.dbs = json.loads(self.dbs)
         for keyspace_name in self.dbs:
             # find keyspace backups on all hosts
-            print("Processing keyspace:", keyspace_name)
-            self.dbs = self.dbs.replace('\\"', '"')
-            self.dbs = json.loads(self.dbs)
             backups = [
                 x for x in host_archives if keyspace_name == x["keyspace"]]
             keyspace_dropped = False
