@@ -183,6 +183,8 @@ class Restore(object):
                             keyspace_schema_file)
 
                 elif self.clone:
+                    self.dbmap = self.dbmap.replace('\\"', '"')
+                    self.dbmap = self.dbmap.strip("'")
                     new_keyspace_name = json.loads(
                         self.dbmap).get(keyspace_name, "")
                     self.log.debug(f"new_keyspace_name: {new_keyspace_name}")
