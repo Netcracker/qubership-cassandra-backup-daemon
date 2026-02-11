@@ -138,8 +138,7 @@ class Restore(object):
 
     def restore(self):
         host_archives = os_utils.find_host_archives(self.vault)
-        self.dbs = self.dbs.replace('\\"', '"')
-        self.dbs = json.loads(self.dbs)
+        self.dbs = self.dbs.strip("'")
         for keyspace_name in self.dbs:
             # find keyspace backups on all hosts
             backups = [
