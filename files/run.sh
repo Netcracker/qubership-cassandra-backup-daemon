@@ -30,6 +30,6 @@ exec /opt/backup/backup-daemon \
   --backup-cmd "/opt/backup/main.py backup -f {{.data_folder}} {{.dbs}}" \
   --restore-cmd "/opt/backup/main.py restore -f {{.data_folder}} {{.dbs}} {{.dbmap}} {{.restore_roles}}" \
   --dblist-cmd "/opt/backup/main.py list-dbs -f {{.data_folder}}" \
-  --tls-enabled="${INTERNAL_TLS_ENABLED:-false}" \
+  --tls-enabled ${INTERNAL_TLS_ENABLED:-false} \
   --certs-path "${INTERNAL_TLS_PATH}" \
   "$@"
