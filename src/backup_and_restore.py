@@ -138,7 +138,9 @@ class Restore(object):
 
     def restore(self):
         host_archives = os_utils.find_host_archives(self.vault)
-
+        self.dbs = self.dbs.replace('\\"', '"')
+        self.dbs = self.dbs.strip("'")
+        self.dbs = json.loads(self.dbs)
         for keyspace_name in self.dbs:
             # find keyspace backups on all hosts
             backups = [
@@ -181,6 +183,8 @@ class Restore(object):
                             keyspace_schema_file)
 
                 elif self.clone:
+                    self.dbmap = self.dbmap.replace('\\"', '"')
+                    self.dbmap = self.dbmap.strip("'")
                     new_keyspace_name = json.loads(
                         self.dbmap).get(keyspace_name, "")
                     self.log.debug(f"new_keyspace_name: {new_keyspace_name}")
@@ -222,7 +226,7 @@ class Restore(object):
 
 def cluster_backup(databases, vault, tls_enabled, cassandra_username, cassandra_password):
     logging.info("Starting backup")
-    logging.info("Databse List: {databases}, vault: {vault}")
+    logging.info(f"Databse List: {databases}, vault: {vault}")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ansible_command = [
         "ansible-playbook",

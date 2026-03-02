@@ -23,8 +23,8 @@ def parse_args():
     parser.add_argument('action', choices=['backup', 'restore', 'list-dbs'],
                         help='Action to perform')
     parser.add_argument('-f', dest='vault', help='Vault option')
-    parser.add_argument('-d', dest='databases', help='Databases option')
-    parser.add_argument('-m', dest='dbmap', help='Dbmap option')
+    parser.add_argument('-d','--dbs', dest='databases', help='Databases option')
+    parser.add_argument('-m','--dbmap', dest='dbmap', help='Dbmap option')
     parser.add_argument('-restore_roles', dest='restore_roles', help='Do we need to replace roles from backup', default=True)
     parser.add_argument('-restore_timestamp', dest='restore_timestamp',
                         help='Restore timestamp option')
@@ -57,7 +57,7 @@ def main():
             exit(1)
     elif args.action == 'restore':
         restore = src.backup_and_restore.Restore(
-            args.vault, args.dbmap, json.loads(args.databases), args.restore_roles)
+            args.vault, args.dbmap, args.databases, args.restore_roles)
         try:
             restore.restore()
         except Exception as e:
