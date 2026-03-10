@@ -15,11 +15,11 @@ ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 
-RUN pip install --no-cache-dir --break-system-packages \
-    setuptools==78.1.1 \
+RUN pip3 install --no-cache-dir \
+    setuptools \
     wheel \
     cassandra-driver \
-    boto3==1.40.69 \
+    boto3 \
     jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
