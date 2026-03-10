@@ -17,7 +17,8 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 
 RUN pip install --no-cache-dir --break-system-packages \
     setuptools==78.1.1 \
-    cassandra-driver==3.30.0 \
+    wheel \
+    cassandra-driver \
     boto3==1.40.69 \
     jq
 
