@@ -1,16 +1,25 @@
+FROM eclipse-temurin:11-jre as java
+
 FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
 
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' > /etc/apk/repositories \
-    && echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories \
-    && apk add --no-cache wget net-tools openssh-client rsync ansible openjdk8 jq python3 python3-dev py3-pip libev-dev build-base linux-headers libffi-dev zip unzip bash grep libarchive-tools \
-    && apk update \
-    && apk upgrade \
-    # ping takes over 999 uid 
-    && sed -i "s/999/99/" /etc/group 
+RUN apk add --no-cache \
+    wget net-tools openssh-client rsync ansible jq \
+    python3 python3-dev py3-pip \
+    libev-dev build-base linux-headers libffi-dev \
+    zip unzip bash grep libarchive-tools \
+    && sed -i "s/999/99/" /etc/group
+
+COPY --from=java /opt/java/openjdk /opt/java/openjdk
+
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="$JAVA_HOME/bin:$PATH"
 
 
-RUN pip install --break-system-packages "setuptools==82.0.0" && \
-    pip install --break-system-packages scylla-driver boto3==1.40.69 jq
+RUN pip install --no-cache-dir \
+    setuptools==78.1.1 \
+    cassandra-driver \
+    boto3==1.40.69 \
+    jq
 
 ENV CASSANDRA_HOME=/opt/cassandra
 ENV CASSANDRA4_DIR=4.1.9
@@ -23,6 +32,7 @@ RUN wget -qO- https://archive.apache.org/dist/cassandra/${CASSANDRA4_DIR}/apache
 
 RUN echo 'export PATH=$PATH:'"$CASSANDRA_HOME/bin" > $CASSANDRA_HOME/.profile 
 RUN mkdir /var/lib/cassandra /var/log/cassandra
+
 VOLUME /backup-storage
 
 ADD files/ /opt/backup/
