@@ -1,6 +1,8 @@
-FROM eclipse-temurin:11-jre AS python-builder
+FROM eclipse-temurin:11-jre AS java
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:debian_image
+
+RUN apt-get update && apt-get install -y \
         python3 \
         python3-dev \
         python3-pip \
@@ -13,38 +15,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         bash \
         rsync \
+        ansible \
         jq \
+        net-tools \
+        openssh-client \
+        zip \
         grep \
         libarchive-tools \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install --no-cache-dir --break-system-packages \
+    && pip3 install --no-cache-dir --break-system-packages \
         setuptools \
         cassandra-driver \
         boto3 \
-        jq
-
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:debian_image
-
-RUN apt-get update && apt-get install -y \
-        wget \
-        net-tools \
-        openssh-client \
-        rsync \
-        ansible \
         jq \
-        python3 \
-        python3-pip \
-        zip \
-        unzip \
-        bash \
-        grep \
-        libarchive-tools \
     && rm -rf /var/lib/apt/lists/* \
     && sed -i "s/999/99/" /etc/group
 
-
-COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
+COPY --from=java /opt/java/openjdk /opt/java/openjdk
 
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="$JAVA_HOME/bin:$PATH"
