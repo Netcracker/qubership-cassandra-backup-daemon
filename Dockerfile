@@ -5,9 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         wget curl unzip bash rsync jq grep libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir --break-system-packages\
     setuptools \
-    wheel \
     cassandra-driver \
     boto3 \
     jq
