@@ -21,6 +21,8 @@ RUN apk add --no-cache \
 
 COPY --from=python-builder /usr/local /usr/local
 
+COPY --from=python-builder /usr/local/lib/python3.12 /usr/lib/python3.12
+
 COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
 
 ENV JAVA_HOME=/opt/java/openjdk
