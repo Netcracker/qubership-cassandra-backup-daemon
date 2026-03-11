@@ -1,26 +1,49 @@
 FROM eclipse-temurin:11-jre AS python-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-dev python3-pip build-essential libffi-dev libssl-dev libev-dev\
-        wget curl unzip bash rsync jq grep libarchive-tools \
+        python3 \
+        python3-dev \
+        python3-pip \
+        build-essential \
+        libffi-dev \
+        libssl-dev \
+        libev-dev \
+        wget \
+        curl \
+        unzip \
+        bash \
+        rsync \
+        jq \
+        grep \
+        libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir --break-system-packages\
-    setuptools \
-    cassandra-driver \
-    boto3 \
-    jq
+RUN pip3 install --no-cache-dir --break-system-packages \
+        setuptools \
+        cassandra-driver \
+        boto3 \
+        jq
 
 FROM ghcr.io/netcracker/qubership-backup-daemon-go:debian_image
 
-RUN apk add --no-cache \
-    wget net-tools openssh-client rsync ansible jq \
-    python3 py3-pip \
-    zip unzip bash grep libarchive-tools \
+RUN apt-get update && apt-get install -y \
+        wget \
+        net-tools \
+        openssh-client \
+        rsync \
+        ansible \
+        jq \
+        python3 \
+        python3-pip \
+        zip \
+        unzip \
+        bash \
+        grep \
+        libarchive-tools \
+        openjdk-11-jre-headless \
+    && rm -rf /var/lib/apt/lists/* \
     && sed -i "s/999/99/" /etc/group
 
-
-COPY --from=python-builder /usr/local/lib/python3.12/dist-packages /usr/lib/python3.12/site-packages
 
 COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
 
