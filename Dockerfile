@@ -1,26 +1,29 @@
-FROM eclipse-temurin:11-jre as java
+FROM eclipse-temurin:11-jre AS python-builder
 
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-dev python3-pip build-essential libffi-dev libssl-dev \
+        wget curl unzip bash rsync jq grep libarchive-tools \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apk add --no-cache \
-    wget net-tools openssh-client rsync ansible jq \
-    python3 python3-dev py3-pip \
-    libev-dev build-base linux-headers libffi-dev \
-    zip unzip bash grep libarchive-tools \
-    && sed -i "s/999/99/" /etc/group
-
-COPY --from=java /opt/java/openjdk /opt/java/openjdk
-
-ENV JAVA_HOME=/opt/java/openjdk
-ENV PATH="$JAVA_HOME/bin:$PATH"
-
-
-RUN pip3 install --no-cache-dir --break-system-packages\
+RUN pip3 install --no-cache-dir \
     setuptools \
     wheel \
     cassandra-driver \
     boto3 \
     jq
+
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
+
+RUN apk add --no-cache \
+    wget net-tools openssh-client rsync ansible jq \
+    python3 py3-pip \
+    libev-dev zip unzip bash grep libarchive-tools \
+    && sed -i "s/999/99/" /etc/group
+
+COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
+
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="$JAVA_HOME/bin:$PATH"
 
 ENV CASSANDRA_HOME=/opt/cassandra
 ENV CASSANDRA4_DIR=4.1.9
