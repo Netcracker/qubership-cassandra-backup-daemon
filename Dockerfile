@@ -19,6 +19,8 @@ RUN apk add --no-cache \
     libev-dev zip unzip bash grep libarchive-tools \
     && sed -i "s/999/99/" /etc/group
 
+COPY --from=python-builder /usr/local /usr/local
+
 COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
 
 ENV JAVA_HOME=/opt/java/openjdk
@@ -48,4 +50,3 @@ RUN chmod -R 777 /opt/backup  /opt/downloads  /opt/cassandra /etc/passwd
 
 
 CMD ["/opt/backup/run.sh"]
-
