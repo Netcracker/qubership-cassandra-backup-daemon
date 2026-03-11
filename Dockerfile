@@ -19,9 +19,8 @@ RUN apk add --no-cache \
     libev-dev zip unzip bash grep libarchive-tools \
     && sed -i "s/999/99/" /etc/group
 
-COPY --from=python-builder /usr/local /usr/local
 
-COPY --from=python-builder /usr/local/lib/python3.12 /usr/lib/python3.12
+COPY --from=python-builder /usr/local/lib/python3.12/dist-packages /usr/lib/python3.12/site-packages
 
 COPY --from=python-builder /opt/java/openjdk /opt/java/openjdk
 
