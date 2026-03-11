@@ -1,7 +1,7 @@
 FROM eclipse-temurin:11-jre AS python-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-dev python3-pip build-essential libffi-dev libssl-dev \
+        python3 python3-dev python3-pip build-essential libffi-dev libssl-dev libev-dev\
         wget curl unzip bash rsync jq grep libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
@@ -16,7 +16,7 @@ FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
 RUN apk add --no-cache \
     wget net-tools openssh-client rsync ansible jq \
     python3 py3-pip \
-    libev-dev zip unzip bash grep libarchive-tools \
+    zip unzip bash grep libarchive-tools \
     && sed -i "s/999/99/" /etc/group
 
 
