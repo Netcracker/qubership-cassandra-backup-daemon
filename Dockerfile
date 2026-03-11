@@ -40,7 +40,6 @@ RUN apt-get update && apt-get install -y \
         bash \
         grep \
         libarchive-tools \
-        openjdk-11-jre-headless \
     && rm -rf /var/lib/apt/lists/* \
     && sed -i "s/999/99/" /etc/group
 
