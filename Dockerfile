@@ -11,7 +11,7 @@ RUN pip3 install --no-cache-dir --break-system-packages\
     boto3 \
     jq
 
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:debian_image
 
 RUN apk add --no-cache \
     wget net-tools openssh-client rsync ansible jq \
