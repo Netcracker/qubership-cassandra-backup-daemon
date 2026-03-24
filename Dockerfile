@@ -53,7 +53,6 @@ ADD files/ /opt/backup/
 ADD main.py /opt/backup/
 ADD src/ /opt/backup/src/
 ADD config/ssh_config /etc/ssh/
-ADD backup-daemon.conf /etc/backup-daemon.conf
 ADD files/ansible.cfg /etc/ansible/
 RUN chmod -R 777 /opt/backup  /opt/downloads  /opt/cassandra /etc/passwd
 
