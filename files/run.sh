@@ -25,4 +25,11 @@ if [ "$REMOTE_DEBUG" = "true" ]; then
     debug_params="-m debugpy --listen localhost:5678"
 fi
 
-exec /opt/backup/backup-daemon "$@"
+exec /opt/backup/backup-daemon \
+  --custom-vars backup_info:nothing \
+  --backup-cmd "/opt/backup/main.py backup -f {{.data_folder}} -d {{.dbs}}" \
+  --restore-cmd "/opt/backup/main.py restore -f {{.data_folder}} -d {{.dbs}} -m {{.dbmap}} -restore_roles {{.restore_roles}}" \
+  --dblist-cmd "/opt/backup/main.py list-dbs -f {{.data_folder}}" \
+  --tls-enabled "${INTERNAL_TLS_ENABLED}" \
+  --certs-path "${INTERNAL_TLS_PATH}" \
+  "$@"
