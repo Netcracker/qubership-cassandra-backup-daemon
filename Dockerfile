@@ -27,8 +27,9 @@ RUN apt-get update && apt-get install -y \
         cassandra-driver \
         boto3 \
         jq \
-    && rm -rf /var/lib/apt/lists/* \
-    && sed -i "s/999/99/" /etc/group
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g 999 cassandra
 
 COPY --from=java /opt/java/openjdk /opt/java/openjdk
 

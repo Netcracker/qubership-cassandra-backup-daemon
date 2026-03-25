@@ -24,3 +24,5 @@ debug_params=""
 if [ "$REMOTE_DEBUG" = "true" ]; then
     debug_params="-m debugpy --listen localhost:5678"
 fi
+
+exec /opt/backup/backup-daemon "$@"
