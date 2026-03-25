@@ -1,6 +1,6 @@
 FROM eclipse-temurin:11-jre AS java
 
-FROM ghcr.io/netcracker/qubership-backup-daemon-go-debian:0.1.7
+FROM ghcr.io/netcracker/qubership-backup-daemon-go-debian:test_branch
 
 RUN apt-get update && apt-get install -y \
         python3 \
